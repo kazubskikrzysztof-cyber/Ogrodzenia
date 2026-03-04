@@ -1449,17 +1449,21 @@ function importujWycene(event) {
    PRZEŁĄCZNIK ZAKŁADEK
    ────────────────────────────────────────────────────────────── */
 function showTab(id) {
-  // Ukryj wszystkie zakładki i odznacz przyciski
+  // Ukryj wszystkie zakładki treści
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  // Odznacz wszystkie przyciski nawigacji
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
-  // Pokaż wybraną zakładkę i zaznacz jej przycisk
-  document.getElementById('tab-' + id).classList.add('active');
-  document.getElementById('tab-btn-' + id)?.classList.add('active');
+  // Pokaż wybraną zakładkę treści (id="tab-NAZWA")
+  const tresc = document.getElementById('tab-' + id);
+  if (tresc) tresc.classList.add('active');
 
-  // Naprawiona wersja (tab-btn ma id "tab-NAZWA")
+  // Zaznacz właściwy przycisk nawigacji
+  // Przyciski mają id w formacie "tab-NAZWA" więc szukamy po tym id
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    if (btn.id === 'tab-' + id) btn.classList.add('active');
+    if (btn.getAttribute('onclick') === "showTab('" + id + "')") {
+      btn.classList.add('active');
+    }
   });
 
   // Odśwież raport gdy go otwieramy
