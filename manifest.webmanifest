@@ -1,0 +1,35 @@
+{
+  "name": "OgrodzeniePRO – Wycena Montażu",
+  "short_name": "OgrodzeniePRO",
+  "description": "Aplikacja do wyceny montażu ogrodzenia w terenie. Działa offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1a2332",
+  "background_color": "#0f1923",
+  "lang": "pl",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxOTIgMTkyJz48cmVjdCB3aWR0aD0nMTkyJyBoZWlnaHQ9JzE5MicgZmlsbD0nIzFhMjMzMicvPjxyZWN0IHg9JzEwJyB5PSc0MCcgd2lkdGg9JzE4JyBoZWlnaHQ9JzEzMCcgcng9JzUnIGZpbGw9JyNmNWE2MjMnLz48cmVjdCB4PSc0NCcgeT0nNTUnIHdpZHRoPScxOCcgaGVpZ2h0PScxMTUnIHJ4PSc1JyBmaWxsPScjZjVhNjIzJy8+PHJlY3QgeD0nNzgnIHk9JzQwJyB3aWR0aD0nMTgnIGhlaWdodD0nMTMwJyByeD0nNScgZmlsbD0nI2Y1YTYyMycvPjxyZWN0IHg9JzExMicgeT0nNTUnIHdpZHRoPScxOCcgaGVpZ2h0PScxMTUnIHJ4PSc1JyBmaWxsPScjZjVhNjIzJy8+PHJlY3QgeD0nMTQ2JyB5PSc0MCcgd2lkdGg9JzE4JyBoZWlnaHQ9JzEzMCcgcng9JzUnIGZpbGw9JyNmNWE2MjMnLz48cmVjdCB4PScxMCcgeT0nODAnIHdpZHRoPScxNTQnIGhlaWdodD0nMTgnIHJ4PSc1JyBmaWxsPScjYTg3ODIwJy8+PHJlY3QgeD0nMTAnIHk9JzEyMCcgd2lkdGg9JzE1NCcgaGVpZ2h0PScxOCcgcng9JzUnIGZpbGw9JyNhODc4MjAnLz48L3N2Zz4=",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA1MTIgNTEyJz48cmVjdCB3aWR0aD0nNTEyJyBoZWlnaHQ9JzUxMicgZmlsbD0nIzFhMjMzMicvPjxyZWN0IHg9JzI0JyB5PSc5Nicgd2lkdGg9JzQ4JyBoZWlnaHQ9JzM1MCcgcng9JzEyJyBmaWxsPScjZjVhNjIzJy8+PHJlY3QgeD0nMTEyJyB5PScxNDAnIHdpZHRoPSc0OCcgaGVpZ2h0PSczMDYnIHJ4PScxMicgZmlsbD0nI2Y1YTYyMycvPjxyZWN0IHg9JzIwMCcgeT0nOTYnIHdpZHRoPSc0OCcgaGVpZ2h0PSczNTAnIHJ4PScxMicgZmlsbD0nI2Y1YTYyMycvPjxyZWN0IHg9JzI4OCcgeT0nMTQwJyB3aWR0aD0nNDgnIGhlaWdodD0nMzA2JyByeD0nMTInIGZpbGw9JyNmNWE2MjMnLz48cmVjdCB4PSczNzYnIHk9Jzk2JyB3aWR0aD0nNDgnIGhlaWdodD0nMzUwJyByeD0nMTInIGZpbGw9JyNmNWE2MjMnLz48cmVjdCB4PScyNCcgeT0nMjEwJyB3aWR0aD0nNDAwJyBoZWlnaHQ9JzQ4JyByeD0nMTInIGZpbGw9JyNhODc4MjAnLz48cmVjdCB4PScyNCcgeT0nMzE4JyB3aWR0aD0nNDAwJyBoZWlnaHQ9JzQ4JyByeD0nMTInIGZpbGw9JyNhODc4MjAnLz48L3N2Zz4=",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Nowa wycena",
+      "short_name": "Nowa",
+      "description": "Rozpocznij nową wycenę ogrodzenia",
+      "url": "./"
+    }
+  ]
+}

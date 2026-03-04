@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>OgrodzeniePRO – Wycena Montażu</title>
+  <meta name="description" content="Aplikacja do wyceny montażu ogrodzenia w terenie. Działa offline.">
+  <meta name="theme-color" content="#1a2332">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OgrodzeniePRO">
+  <!-- WARIANT B: Manifest jako osobny plik (pewny, działa na iOS/Safari) -->
+  <link rel="manifest" href="./manifest.webmanifest">
+
+  <!-- ════════════════════════════════════════════════════════════
+       STYLE – mobile-first, wysoki kontrast, duże elementy dotykowe
+       ════════════════════════════════════════════════════════════ -->
+  <style>
+    /* ── Zmienne kolorów i rozmiarów ── */
+    :root {
+      --bg:          #0f1923;   /* bardzo ciemny granat – czytelny w słońcu */
+      --bg2:         #1a2d40;
+      --bg3:         #223348;
+      --card:        #1e2f42;
+      --border:      #2e4560;
+      --accent:      #f5a623;   /* pomarańczowy – widoczny na słońcu */
+      --accent2:     #e8831a;
+      --green:       #2ecc71;
+      --red:         #e74c3c;
+      --text:        #ecf0f1;
+      --text2:       #a8bbd0;
+      --text3:       #6a8aaa;
+      --shadow:      0 4px 24px rgba(0,0,0,0.5);
+      --radius:      12px;
+      --touch:       48px;      /* minimalna wysokość elementów dotykowych */
+      --font:        'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    /* ── Reset i podstawy ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Nagłówek aplikacji ── */
+    .app-header {
+      background: linear-gradient(135deg, #1a2d40 0%, #0f1923 100%);
+      border-bottom: 2px solid var(--accent);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .app-logo svg { width: 32px; height: 32px; }
+    .app-title { font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+    .app-subtitle { font-size: 0.7rem; color: var(--text3); }
+    .pwa-btn {
+      background: var(--accent);
+      color: #1a2332;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: none; /* pojawi się gdy PWA gotowe do instalacji */
+    }
+
+    /* ── Nawigacja zakładkowa ── */
+    .tab-nav {
+      display: flex;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+      position: sticky;
+      top: 61px;
+      z-index: 99;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex: none;
+      min-width: 80px;
+      padding: 0 12px;
+      height: var(--touch);
+      border: none;
+      background: transparent;
+      color: var(--text3);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(245,166,35,0.08);
+    }
+    .tab-btn svg { width: 18px; height: 18px; }
+
+    /* ── Kontenery zakładek ── */
+    .tab-content { display: none; padding: 16px; max-width: 800px; margin: 0 auto; }
+    .tab-content.active { display: block; }
+
+    /* ── Karty ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Pola formularza ── */
+    label { display: block; font-size: 0.82rem; color: var(--text2); margin-bottom: 4px; }
+    input[type="text"], input[type="number"], input[type="tel"], textarea, select {
+      width: 100%;
+      height: var(--touch);
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      padding: 0 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea { height: auto; min-height: 80px; padding: 10px 12px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    input.error { border-color: var(--red) !important; }
+    .field-error { color: var(--red); font-size: 0.75rem; margin-top: 3px; display: none; }
+    .field-error.show { display: block; }
+    .form-row { margin-bottom: 12px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 380px) { .form-grid { grid-template-columns: 1fr; } }
+
+    /* ── Przyciski ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: var(--touch);
+      padding: 0 18px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--accent); color: #1a2332; }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-success { background: var(--green); color: #0f1923; }
+    .btn-danger  { background: var(--red);   color: #fff; }
+    .btn-ghost   { background: transparent; border: 1.5px solid var(--border); color: var(--text2); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm { height: 36px; padding: 0 12px; font-size: 0.8rem; }
+    .btn-full { width: 100%; }
+
+    /* ── Przełącznik (toggle) ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 0.9rem; color: var(--text); }
+    .toggle {
+      position: relative;
+      width: 52px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--bg3);
+      border-radius: 28px;
+      cursor: pointer;
+      transition: 0.25s;
+      border: 1.5px solid var(--border);
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      left: 3px; top: 50%;
+      transform: translateY(-50%);
+      background: var(--text3);
+      border-radius: 50%;
+      transition: 0.25s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+    .toggle input:checked + .toggle-slider::before { transform: translate(24px, -50%); background: #fff; }
+
+    /* ── Lista zestawów ── */
+    .zestaw-item {
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .zestaw-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px;
+      background: var(--bg3);
+      cursor: pointer;
+    }
+    .zestaw-num {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      color: #1a2332;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .zestaw-nazwa { font-weight: 700; flex: 1; font-size: 0.95rem; }
+    .zestaw-dlugosc { color: var(--accent); font-weight: 700; font-size: 0.9rem; }
+    .zestaw-kwota { color: var(--green); font-weight: 700; font-size: 0.9rem; }
+    .zestaw-body { padding: 14px; }
+    .zestaw-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+    /* ── Siatka obliczeń zestawu ── */
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .calc-cell {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+    .calc-cell .val { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+    .calc-cell .lbl { font-size: 0.68rem; color: var(--text3); text-transform: uppercase; }
+
+    /* ── SVG wizualizacja ── */
+    .svg-wrapper {
+      overflow-x: auto;
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── Cennik tabela ── */
+    .cennik-table { width: 100%; border-collapse: collapse; }
+    .cennik-table th {
+      text-align: left;
+      font-size: 0.75rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cennik-table td { padding: 6px 4px; vertical-align: middle; }
+    .cennik-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    .cennik-table input {
+      width: 100%;
+      height: 40px;
+      font-size: 0.9rem;
+      padding: 0 8px;
+    }
+    .cennik-name { font-size: 0.85rem; color: var(--text2); padding: 0 8px; }
+    .cennik-unit { font-size: 0.78rem; color: var(--text3); text-align: right; padding: 0 8px; white-space: nowrap; }
+
+    /* ── Podsumowanie ── */
+    .suma-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .suma-row:last-child { border-bottom: none; }
+    .suma-row .lbl { color: var(--text2); }
+    .suma-row .val { font-weight: 700; color: var(--text); }
+    .suma-total {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-align: center;
+      padding: 16px;
+      background: var(--bg2);
+      border-radius: var(--radius);
+      border: 2px solid var(--accent);
+      margin: 12px 0;
+    }
+    .suma-total small { font-size: 0.8rem; color: var(--text3); display: block; }
+
+    /* ── Pasek sumy dolny ── */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--bg2);
+      border-top: 2px solid var(--accent);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 98;
+    }
+    .bottom-bar .suma-label { font-size: 0.75rem; color: var(--text3); }
+    .bottom-bar .suma-val { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+    body { padding-bottom: 68px; }
+
+    /* ── Toast / powiadomienia ── */
+    #toast-container {
+      position: fixed;
+      top: 80px;
+      right: 16px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--green);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      color: var(--text);
+      box-shadow: var(--shadow);
+      animation: slideIn 0.25s ease, fadeOut 0.3s 2.7s ease forwards;
+      max-width: 280px;
+    }
+    .toast.error { border-left-color: var(--red); }
+    @keyframes slideIn  { from { transform: translateX(120%); opacity:0; } to { transform:none; opacity:1; } }
+    @keyframes fadeOut  { to   { opacity:0; transform: translateX(120%); } }
+
+    /* ── Input + select inline ── */
+    .inline-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .inline-row .form-row { flex: 1; margin-bottom: 0; }
+    .unit-toggle {
+      display: flex;
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      height: var(--touch);
+      flex-shrink: 0;
+    }
+    .unit-btn {
+      padding: 0 14px;
+      background: transparent;
+      border: none;
+      color: var(--text3);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .unit-btn.active { background: var(--accent); color: #1a2332; }
+
+    /* ── Separator ── */
+    .sep { height: 1px; background: var(--border); margin: 16px 0; }
+
+    /* ── Kolory reszty w SVG ── */
+    .reszta-info {
+      background: rgba(245,166,35,0.12);
+      border: 1px solid rgba(245,166,35,0.3);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      color: var(--accent);
+      margin-top: 8px;
+    }
+
+    /* ══════════════════════════════════════
+       STYLE DRUKOWANIA (A4, czysty raport)
+       ══════════════════════════════════════ */
+    @media print {
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      body {
+        background: #fff !important;
+        color: #000 !important;
+        font-family: Georgia, serif;
+        padding: 0 !important;
+        font-size: 11pt;
+      }
+      .app-header, .tab-nav, .bottom-bar,
+      .btn, .tab-content:not(.active),
+      .zestaw-actions, .pwa-btn,
+      #toast-container { display: none !important; }
+      .tab-content.active { display: block !important; padding: 0 !important; }
+      .card {
+        background: #fff !important;
+        border: 1px solid #ccc !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        margin-bottom: 12pt;
+      }
+      .card-title { color: #1a1a1a !important; }
+      .calc-cell { background: #f5f5f5 !important; }
+      .calc-cell .val { color: #1a2d40 !important; }
+      .suma-total {
+        background: #1a2d40 !important;
+        color: #fff !important;
+        border: 2px solid #1a2d40 !important;
+      }
+      .suma-row .val { color: #000 !important; }
+      .zestaw-item { border: 1px solid #ccc !important; background: #fff !important; }
+      .zestaw-header { background: #f0f0f0 !important; }
+      .zestaw-num { background: #1a2d40 !important; color: #fff !important; }
+      .svg-wrapper { background: #fff !important; border: 1px solid #ccc !important; }
+      h2.print-title {
+        font-size: 18pt;
+        margin-bottom: 12pt;
+        border-bottom: 2px solid #1a2d40;
+        padding-bottom: 6pt;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     NAGŁÓWEK APLIKACJI
+     ════════════════════════════════════════════════════════════ -->
+<header class="app-header">
+  <div class="app-logo">
+    <!-- Ikonka SVG ogrodzenia -->
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="8" width="4" height="30" rx="2" fill="#f5a623"/>
+      <rect x="10" y="12" width="4" height="26" rx="2" fill="#f5a623"/>
+      <rect x="18" y="8" width="4" height="30" rx="2" fill="#f5a623"/>
+      <rect x="26" y="12" width="4" height="26" rx="2" fill="#f5a623"/>
+      <rect x="34" y="8" width="4" height="30" rx="2" fill="#f5a623"/>
+      <rect x="2" y="16" width="36" height="4" rx="2" fill="#a87820"/>
+      <rect x="2" y="26" width="36" height="4" rx="2" fill="#a87820"/>
+    </svg>
+    <div>
+      <div class="app-title">OgrodzeniePRO</div>
+      <div class="app-subtitle">Wycena montażu</div>
+    </div>
+  </div>
+  <!-- Przycisk pojawi się gdy przeglądarka zaoferuje instalację PWA -->
+  <button class="pwa-btn" id="pwaInstallBtn">📲 Zainstaluj</button>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════
+     NAWIGACJA ZAKŁADKOWA
+     ════════════════════════════════════════════════════════════ -->
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('klient')" id="tab-klient">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Klient
+  </button>
+  <button class="tab-btn" onclick="showTab('zestawy')" id="tab-zestawy">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Zestawy
+  </button>
+  <button class="tab-btn" onclick="showTab('dodatki')" id="tab-dodatki">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    Dodatki
+  </button>
+  <button class="tab-btn" onclick="showTab('cennik')" id="tab-cennik">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+    Cennik
+  </button>
+  <button class="tab-btn" onclick="showTab('podsumowanie')" id="tab-podsumowanie">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    Raport
+  </button>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════
+     ZAKŁADKA 1: KLIENT
+     ════════════════════════════════════════════════════════════ -->
+<div class="tab-content active" id="tab-klient">
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Dane Klienta
+    </div>
+    <div class="form-row">
+      <label for="k-nazwa">Imię i nazwisko / Firma</label>
+      <input type="text" id="k-nazwa" placeholder="np. Jan Kowalski" oninput="zapiszKlienta()">
+    </div>
+    <div class="form-row">
+      <label for="k-adres">Adres montażu</label>
+      <input type="text" id="k-adres" placeholder="np. ul. Ogrodowa 5, Warszawa" oninput="zapiszKlienta()">
+    </div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label for="k-tel">Telefon</label>
+        <input type="tel" id="k-tel" placeholder="600 123 456" oninput="zapiszKlienta()">
+      </div>
+      <div class="form-row">
+        <label for="k-data">Data wyceny</label>
+        <input type="text" id="k-data" oninput="zapiszKlienta()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Ustawienia geometryczne -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Ustawienia Geometryczne
+    </div>
+    <p style="font-size:0.8rem;color:var(--text3);margin-bottom:12px;">Zmień tylko jeśli stosujesz niestandardowe wymiary paneli/słupków.</p>
+    <div class="form-grid">
+      <div class="form-row">
+        <label for="u-panel">Długość panelu (mm)</label>
+        <input type="number" id="u-panel" value="2500" min="100" max="9999" oninput="zapiszUstawienia(); przeliczWszystko()">
+      </div>
+      <div class="form-row">
+        <label for="u-slupek">Szerokość słupka (mm)</label>
+        <input type="number" id="u-slupek" value="40" min="10" max="500" oninput="zapiszUstawienia(); przeliczWszystko()">
+      </div>
+    </div>
+    <div style="font-size:0.82rem;color:var(--text2);background:var(--bg2);padding:10px;border-radius:8px;margin-top:4px;">
+      📐 Segment = panel + słupek = <strong id="u-segment-info">2 540 mm</strong>
+    </div>
+  </div>
+
+  <!-- Przyciski importu/eksportu projektu -->
+  <div class="card">
+    <div class="card-title">💾 Projekt (zapis/odczyt)</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="eksportujWycene()">📤 Eksport JSON</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">📥 Import JSON</button>
+      <button class="btn btn-danger btn-sm" onclick="nowaWycena()">🗑️ Nowa wycena</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importujWycene(event)">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     ZAKŁADKA 2: ZESTAWY
+     ════════════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-zestawy">
+
+  <!-- Formularz dodawania nowego zestawu -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Dodaj Zestaw (Bok Ogrodzenia)
+    </div>
+    <div class="form-row">
+      <label for="nowy-nazwa">Nazwa zestawu</label>
+      <input type="text" id="nowy-nazwa" placeholder='np. "Bok północny" lub "Front"'>
+    </div>
+    <div class="inline-row">
+      <div class="form-row">
+        <label for="nowy-dl">Długość</label>
+        <input type="number" id="nowy-dl" placeholder="np. 18.5" min="0" step="0.001" id="nowy-dl">
+      </div>
+      <!-- Przełącznik jednostek m / mm -->
+      <div>
+        <label style="margin-bottom:4px;">Jednostka</label>
+        <div class="unit-toggle">
+          <button class="unit-btn active" id="unitBtn-m" onclick="setJednostka('m')">m</button>
+          <button class="unit-btn" id="unitBtn-mm" onclick="setJednostka('mm')">mm</button>
+        </div>
+      </div>
+    </div>
+    <div id="nowy-error" class="field-error"></div>
+    <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="dodajZestaw()">
+      ➕ Dodaj zestaw
+    </button>
+  </div>
+
+  <!-- Lista dodanych zestawów -->
+  <div id="zestawy-lista">
+    <!-- Tutaj JavaScript wstawia karty zestawów -->
+    <div style="text-align:center;padding:32px;color:var(--text3);font-size:0.9rem;">
+      Nie dodano jeszcze żadnego zestawu.<br>Wpisz nazwę i długość powyżej.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     ZAKŁADKA 3: DODATKI
+     ════════════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-dodatki">
+
+  <!-- Transport -->
+  <div class="card">
+    <div class="card-title">🚚 Dodatki do wyceny</div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">Transport</span>
+      <label class="toggle">
+        <input type="checkbox" id="d-transport" onchange="renderDodatki(); zapiszDane()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div id="d-transport-extra" style="display:none;padding:10px 0;">
+      <label for="d-transport-kwota">Kwota transportu (zł) – domyślnie z cennika</label>
+      <input type="number" id="d-transport-kwota" placeholder="Zostaw puste = z cennika" min="0" oninput="zapiszDane()">
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">Demontaż starego ogrodzenia</span>
+      <label class="toggle">
+        <input type="checkbox" id="d-demontaz" onchange="renderDodatki(); zapiszDane()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div id="d-demontaz-extra" style="display:none;padding:10px 0;">
+      <label for="d-demontaz-mb">Długość do demontażu (mb)</label>
+      <input type="number" id="d-demontaz-mb" placeholder="np. 20" min="0" step="0.1" oninput="zapiszDane()">
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">Brama</span>
+      <label class="toggle">
+        <input type="checkbox" id="d-brama" onchange="renderDodatki(); zapiszDane()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div id="d-brama-extra" style="display:none;padding:10px 0;">
+      <label for="d-brama-il">Liczba bram (szt)</label>
+      <input type="number" id="d-brama-il" value="1" min="0" max="20" oninput="zapiszDane()">
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">Furtka</span>
+      <label class="toggle">
+        <input type="checkbox" id="d-furtka" onchange="renderDodatki(); zapiszDane()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div id="d-furtka-extra" style="display:none;padding:10px 0;">
+      <label for="d-furtka-il">Liczba furtek (szt)</label>
+      <input type="number" id="d-furtka-il" value="1" min="0" max="20" oninput="zapiszDane()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📝 Uwagi do wyceny</div>
+    <textarea id="d-uwagi" placeholder="np. Brama przesuwna, fundamenty do wykonania, specjalne życzenia klienta..." oninput="zapiszDane()"></textarea>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     ZAKŁADKA 4: CENNIK
+     ════════════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-cennik">
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Edycja Cennika
+    </div>
+    <p style="font-size:0.8rem;color:var(--text3);margin-bottom:12px;">Ceny zapisują się automatycznie. Zmiany wpływają na wszystkie wyceny.</p>
+
+    <!-- Tabela cennika – wypełniana przez JS -->
+    <table class="cennik-table">
+      <thead>
+        <tr>
+          <th>Pozycja</th>
+          <th>Cena</th>
+          <th>Jedn.</th>
+        </tr>
+      </thead>
+      <tbody id="cennik-tbody">
+        <!-- Wypełniane przez renderCennik() -->
+      </tbody>
+    </table>
+
+    <div class="sep"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="resetCennika()">🔄 Przywróć domyślne</button>
+      <button class="btn btn-ghost btn-sm" onclick="eksportCennik()">📤 Eksport JSON</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importCennikFile').click()">📥 Import JSON</button>
+    </div>
+    <input type="file" id="importCennikFile" accept=".json" style="display:none" onchange="importCennik(event)">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     ZAKŁADKA 5: PODSUMOWANIE / RAPORT
+     ════════════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-podsumowanie">
+
+  <!-- Tytuł tylko dla wydruku -->
+  <h2 class="print-title" id="print-title" style="display:none">Wycena Montażu Ogrodzenia</h2>
+
+  <!-- Karta klienta (podgląd) -->
+  <div class="card" id="rap-klient">
+    <div class="card-title">👤 Klient</div>
+    <div id="rap-klient-body" style="font-size:0.9rem;color:var(--text2);line-height:1.7;"></div>
+  </div>
+
+  <!-- Szczegóły zestawów -->
+  <div class="card">
+    <div class="card-title">📐 Zestawy</div>
+    <div id="rap-zestawy"></div>
+  </div>
+
+  <!-- Dodatki -->
+  <div class="card">
+    <div class="card-title">🔧 Dodatki</div>
+    <div id="rap-dodatki"></div>
+  </div>
+
+  <!-- Suma końcowa -->
+  <div class="card">
+    <div class="card-title">💰 Podsumowanie Finansowe</div>
+    <div id="rap-suma"></div>
+  </div>
+
+  <!-- Uwagi -->
+  <div class="card" id="rap-uwagi-card">
+    <div class="card-title">📝 Uwagi</div>
+    <div id="rap-uwagi-body" style="font-size:0.9rem;color:var(--text2);"></div>
+  </div>
+
+  <!-- Przyciski akcji -->
+  <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+    <button class="btn btn-primary btn-full" onclick="kopiujSMS()">💬 Kopiuj do SMS/WhatsApp</button>
+    <button class="btn btn-success btn-full" onclick="drukuj()">🖨️ Drukuj / Zapisz PDF</button>
+    <button class="btn btn-ghost btn-full" onclick="eksportujWycene()">📤 Eksport wyceny JSON</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     PASEK DOLNY – suma na bieżąco
+     ════════════════════════════════════════════════════════════ -->
+<div class="bottom-bar">
+  <div>
+    <div class="suma-label">Łączna wycena</div>
+    <div class="suma-val" id="bottom-suma">0,00 zł</div>
+  </div>
+  <button class="btn btn-primary btn-sm" onclick="showTab('podsumowanie')">Raport →</button>
+</div>
+
+<!-- Kontener na powiadomienia toast -->
+<div id="toast-container"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT – cała logika aplikacji
+     ════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ──────────────────────────────────────────────────────────────
+   DOMYŚLNY CENNIK
+   Wartości które są preinstalowane przy pierwszym uruchomieniu.
+   ────────────────────────────────────────────────────────────── */
+const CENNIK_DOMYSLNY = {
+  panel_zl:           { nazwa: 'Panel ogrodzeniowy',         wartosc: 120,  jednostka: 'zł/szt' },
+  slupek_zl:          { nazwa: 'Słupek',                     wartosc: 45,   jednostka: 'zł/szt' },
+  robocizna_zl_mb:    { nazwa: 'Robocizna montażu',          wartosc: 25,   jednostka: 'zł/mb'  },
+  transport_zl:       { nazwa: 'Transport (ryczałt)',         wartosc: 300,  jednostka: 'zł'     },
+  demontaz_zl_mb:     { nazwa: 'Demontaż starego ogrodzenia',wartosc: 15,   jednostka: 'zł/mb'  },
+  brama_zl:           { nazwa: 'Brama',                      wartosc: 1200, jednostka: 'zł/szt' },
+  furtka_zl:          { nazwa: 'Furtka',                     wartosc: 450,  jednostka: 'zł/szt' },
+};
+
+/* ──────────────────────────────────────────────────────────────
+   STAN APLIKACJI
+   Jeden obiekt przechowuje cały stan – łatwo go zapisać/wczytać.
+   ────────────────────────────────────────────────────────────── */
+let stan = {
+  klient: { nazwa:'', adres:'', telefon:'', data: dzisiaj() },
+  ustawienia: { dlugoscPanelu_mm: 2500, szerokoscSlupka_mm: 40, jednostka: 'm' },
+  zestawy: [],        // tablica zestawów (każdy = obiekt z id, nazwa, dlugoscM)
+  dodatki: {
+    transport:  { aktywny: false, kwota: null },
+    demontaz:   { aktywny: false, mb: 0 },
+    brama:      { aktywny: false, ilosc: 1 },
+    furtka:     { aktywny: false, ilosc: 1 },
+    uwagi:      '',
+  },
+  cennik: JSON.parse(JSON.stringify(CENNIK_DOMYSLNY)), // głęboka kopia domyślnych
+};
+
+/* ──────────────────────────────────────────────────────────────
+   INICJALIZACJA PWA
+   Rejestruje Service Worker aby aplikacja działała offline.
+   Używamy podejścia blob URL (Wariant A – jeden plik).
+   ────────────────────────────────────────────────────────────── */
+function inicjalizujPWA() {
+  // WARIANT B: Rejestracja Service Workera z zewnętrznego pliku sw.js
+  // Plik sw.js musi być w tym samym folderze co index.html
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => {
+        console.log('✅ Service Worker zarejestrowany (tryb offline aktywny)', reg.scope);
+      })
+      .catch(err => {
+        console.warn('⚠️ Błąd rejestracji SW – aplikacja działa, ale bez trybu offline:', err);
+      });
+  }
+
+  // Przycisk instalacji PWA (pojawia się gdy przeglądarka proponuje instalację)
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('pwaInstallBtn').style.display = 'block';
+  });
+  document.getElementById('pwaInstallBtn').addEventListener('click', () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => {
+        document.getElementById('pwaInstallBtn').style.display = 'none';
+        deferredPrompt = null;
+      });
+    }
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   OBLICZENIA ZESTAWU
+   Najważniejsza funkcja – liczy panele, słupki i resztę.
+   ────────────────────────────────────────────────────────────── */
+function obliczZestaw(dlugoscM) {
+  const panelMM   = stan.ustawienia.dlugoscPanelu_mm;
+  const slupekMM  = stan.ustawienia.szerokoscSlupka_mm;
+  const segmentMM = panelMM + slupekMM;  // jeden segment = panel + słupek
+
+  const dlugoscMM = Math.round(dlugoscM * 1000); // zamiana m → mm (zaokrąglamy do pełnych mm)
+
+  // Przypadek brzegowy: długość = 0
+  if (dlugoscMM <= 0) {
+    return { blad: 'Długość musi być większa niż 0.' };
+  }
+
+  // Liczba pełnych segmentów mieszczących się w długości
+  const nSegmentow = Math.floor(dlugoscMM / segmentMM);
+
+  // Reszta po odcięciu pełnych segmentów (w mm)
+  let resztaMM = dlugoscMM - (nSegmentow * segmentMM);
+
+  // Ile paneli i słupków potrzeba?
+  let nPaneli  = nSegmentow;
+  let nSlupkow = nSegmentow + 1; // +1 bo słupek na końcu
+
+  let maRestke = false;
+  // Jeśli jest reszta > 0 → potrzebny dodatkowy panel + słupek
+  if (resztaMM > 0) {
+    nPaneli  += 1;
+    nSlupkow += 1;  // słupek za ostatnim (niepełnym) panelem
+    maRestke  = true;
+  }
+
+  // Obliczenia kosztów
+  const cennik = stan.cennik;
+  const ksztPanel   = nPaneli  * cennik.panel_zl.wartosc;
+  const ksztSlupki  = nSlupkow * cennik.slupek_zl.wartosc;
+  const ksztRobociz = dlugoscM * cennik.robocizna_zl_mb.wartosc;
+  const ksztRazem   = ksztPanel + ksztSlupki + ksztRobociz;
+
+  return {
+    dlugoscMM,
+    dlugoscM,
+    panelMM, slupekMM, segmentMM,
+    nPaneli, nSlupkow,
+    resztaMM, maRestke,
+    dlugoscSegmentowM: (nSegmentow * segmentMM / 1000).toFixed(3),
+    ksztPanel:   zaokraglijDo2(ksztPanel),
+    ksztSlupki:  zaokraglijDo2(ksztSlupki),
+    ksztRobociz: zaokraglijDo2(ksztRobociz),
+    ksztRazem:   zaokraglijDo2(ksztRazem),
+  };
+}
+
+/* ──────────────────────────────────────────────────────────────
+   RENDEROWANIE LISTY ZESTAWÓW
+   Tworzy HTML dla każdego zestawu na liście.
+   ────────────────────────────────────────────────────────────── */
+function renderZestawy() {
+  const lista = document.getElementById('zestawy-lista');
+  if (stan.zestawy.length === 0) {
+    lista.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text3);font-size:0.9rem;">
+      Nie dodano jeszcze żadnego zestawu.<br>Wpisz nazwę i długość powyżej.
+    </div>`;
+    return;
+  }
+
+  lista.innerHTML = stan.zestawy.map((z, i) => {
+    const obl = obliczZestaw(z.dlugoscM);
+    if (obl.blad) return `<div class="zestaw-item"><div class="zestaw-header"><div class="zestaw-num">${i+1}</div><div class="zestaw-nazwa">${escHtml(z.nazwa)}</div><span style="color:var(--red)">${obl.blad}</span></div></div>`;
+
+    const dl = stan.ustawienia.jednostka === 'm'
+      ? formatujLiczbe(z.dlugoscM, 3) + ' m'
+      : obl.dlugoscMM + ' mm';
+
+    return `
+    <div class="zestaw-item">
+      <div class="zestaw-header">
+        <div class="zestaw-num">${i+1}</div>
+        <div class="zestaw-nazwa">${escHtml(z.nazwa)}</div>
+        <div class="zestaw-dlugosc">${dl}</div>
+        <div class="zestaw-kwota">${formatujZl(obl.ksztRazem)}</div>
+      </div>
+      <div class="zestaw-body">
+        <!-- Siatka obliczeń -->
+        <div class="calc-grid">
+          <div class="calc-cell"><div class="val">${obl.nPaneli}</div><div class="lbl">Panele</div></div>
+          <div class="calc-cell"><div class="val">${obl.nSlupkow}</div><div class="lbl">Słupki</div></div>
+          <div class="calc-cell"><div class="val">${obl.resztaMM > 0 ? obl.resztaMM + ' mm' : '0'}</div><div class="lbl">Reszta</div></div>
+        </div>
+
+        ${obl.maRestke ? `
+        <div class="reszta-info">
+          ⚠️ Reszta <strong>${obl.resztaMM} mm</strong> – doliczono 1 dodatkowy panel i 1 słupek.
+        </div>` : `
+        <div style="font-size:0.8rem;color:var(--green);padding:6px 0;">✅ Długość pasuje bez reszty.</div>`}
+
+        <!-- Wizualizacja SVG -->
+        <div class="svg-wrapper" style="margin-top:10px;">
+          ${generujSVG(obl)}
+        </div>
+
+        <!-- Rozbicie kosztów -->
+        <div style="margin-top:10px;">
+          <div class="suma-row"><span class="lbl">Panele (${obl.nPaneli} × ${formatujZl(stan.cennik.panel_zl.wartosc)})</span><span class="val">${formatujZl(obl.ksztPanel)}</span></div>
+          <div class="suma-row"><span class="lbl">Słupki (${obl.nSlupkow} × ${formatujZl(stan.cennik.slupek_zl.wartosc)})</span><span class="val">${formatujZl(obl.ksztSlupki)}</span></div>
+          <div class="suma-row"><span class="lbl">Robocizna (${formatujLiczbe(z.dlugoscM,2)} mb × ${formatujZl(stan.cennik.robocizna_zl_mb.wartosc)})</span><span class="val">${formatujZl(obl.ksztRobociz)}</span></div>
+        </div>
+
+        <!-- Przyciski edycji/usunięcia zestawu -->
+        <div class="zestaw-actions">
+          <button class="btn btn-ghost btn-sm" onclick="edytujDlugosc('${z.id}')">✏️ Edytuj długość</button>
+          <button class="btn btn-danger btn-sm" onclick="usunZestaw('${z.id}')">🗑️ Usuń</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   GENEROWANIE SVG
+   Wizualizacja zestawu: panele jako prostokąty, słupki jako wąskie paski.
+   ────────────────────────────────────────────────────────────── */
+function generujSVG(obl) {
+  // Skala: ile px = 1 mm (dopasowujemy do max 360px szerokości)
+  const MAKS_SZER = 340;
+  const calosccMM = obl.nPaneli * obl.panelMM + obl.nSlupkow * obl.slupekMM;
+  const skala     = Math.min(MAKS_SZER / calosccMM, 0.12); // max 0.12 px/mm
+
+  const WYSOCOSC = 50;
+  const szer     = Math.round(calosccMM * skala);
+
+  // Kolory
+  const COL_PANEL  = '#2e4560';
+  const COL_SLUPEK = '#f5a623';
+  const COL_RESZTA = '#e8831a';
+
+  let x = 0;
+  let elementy = '';
+
+  // Rysuj N pełnych paneli
+  const panelePelne = obl.maRestke ? obl.nPaneli - 1 : obl.nPaneli;
+
+  for (let i = 0; i < panelePelne; i++) {
+    // Słupek przed panelem
+    const sw = Math.max(2, Math.round(obl.slupekMM * skala));
+    elementy += `<rect x="${x}" y="5" width="${sw}" height="${WYSOCOSC-10}" fill="${COL_SLUPEK}" rx="1"/>`;
+    x += sw;
+    // Panel
+    const pw = Math.round(obl.panelMM * skala);
+    elementy += `<rect x="${x}" y="0" width="${pw}" height="${WYSOCOSC}" fill="${COL_PANEL}" rx="2"/>`;
+    // Poziome linie na panelu (estetyka)
+    elementy += `<line x1="${x+2}" y1="${WYSOCOSC*0.35}" x2="${x+pw-2}" y2="${WYSOCOSC*0.35}" stroke="#3a5878" stroke-width="2"/>`;
+    elementy += `<line x1="${x+2}" y1="${WYSOCOSC*0.65}" x2="${x+pw-2}" y2="${WYSOCOSC*0.65}" stroke="#3a5878" stroke-width="2"/>`;
+    x += pw;
+  }
+
+  // Reszta (niepełny panel) – inny kolor
+  if (obl.maRestke) {
+    const sw = Math.max(2, Math.round(obl.slupekMM * skala));
+    elementy += `<rect x="${x}" y="5" width="${sw}" height="${WYSOCOSC-10}" fill="${COL_SLUPEK}" rx="1"/>`;
+    x += sw;
+    const rw = Math.max(4, Math.round(obl.resztaMM * skala));
+    elementy += `<rect x="${x}" y="0" width="${rw}" height="${WYSOCOSC}" fill="${COL_RESZTA}" rx="2" opacity="0.9"/>`;
+    // Etykieta "reszta" jeśli jest miejsce
+    if (rw > 20) {
+      elementy += `<text x="${x + rw/2}" y="${WYSOCOSC/2 + 4}" text-anchor="middle" font-size="8" fill="#fff" font-family="sans-serif">R</text>`;
+    }
+    x += rw;
+  }
+
+  // Słupek końcowy
+  const sw = Math.max(2, Math.round(obl.slupekMM * skala));
+  elementy += `<rect x="${x}" y="5" width="${sw}" height="${WYSOCOSC-10}" fill="${COL_SLUPEK}" rx="1"/>`;
+  x += sw;
+
+  // Legenda
+  const legenda = `
+    <rect x="0" y="${WYSOCOSC+6}" width="12" height="8" fill="${COL_PANEL}" rx="1"/>
+    <text x="16" y="${WYSOCOSC+13}" font-size="8" fill="#a8bbd0" font-family="sans-serif">Panel</text>
+    <rect x="55" y="${WYSOCOSC+6}" width="8" height="8" fill="${COL_SLUPEK}" rx="1"/>
+    <text x="66" y="${WYSOCOSC+13}" font-size="8" fill="#a8bbd0" font-family="sans-serif">Słupek</text>
+    ${obl.maRestke ? `<rect x="108" y="${WYSOCOSC+6}" width="12" height="8" fill="${COL_RESZTA}" rx="1"/><text x="124" y="${WYSOCOSC+13}" font-size="8" fill="#a8bbd0" font-family="sans-serif">Reszta</text>` : ''}
+  `;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.max(x, 160)}" height="${WYSOCOSC + 22}" viewBox="0 0 ${Math.max(x,160)} ${WYSOCOSC + 22}">
+    ${elementy}
+    ${legenda}
+  </svg>`;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   DODAWANIE / USUWANIE ZESTAWÓW
+   ────────────────────────────────────────────────────────────── */
+function dodajZestaw() {
+  const nazwaEl = document.getElementById('nowy-nazwa');
+  const dlEl    = document.getElementById('nowy-dl');
+  const errEl   = document.getElementById('nowy-error');
+
+  const nazwa   = nazwaEl.value.trim() || `Zestaw ${stan.zestawy.length + 1}`;
+  const dlTekst = dlEl.value.trim();
+
+  // Walidacja: pole nie może być puste
+  if (!dlTekst) {
+    pokazBlad(errEl, 'Podaj długość zestawu.');
+    dlEl.classList.add('error');
+    return;
+  }
+
+  let dlugoscM = parseFloat(dlTekst.replace(',', '.'));
+
+  // Walidacja: musi być liczbą dodatnią
+  if (isNaN(dlugoscM) || dlugoscM <= 0) {
+    pokazBlad(errEl, 'Długość musi być liczbą większą od 0.');
+    dlEl.classList.add('error');
+    return;
+  }
+
+  // Jeśli jednostka to mm, przelicz na metry
+  if (stan.ustawienia.jednostka === 'mm') {
+    dlugoscM = dlugoscM / 1000;
+  }
+
+  // Sprawdź obliczenia
+  const obl = obliczZestaw(dlugoscM);
+  if (obl.blad) {
+    pokazBlad(errEl, obl.blad);
+    return;
+  }
+
+  // Dodaj do stanu
+  stan.zestawy.push({
+    id: 'z' + Date.now(),
+    nazwa: nazwa,
+    dlugoscM: dlugoscM,
+  });
+
+  // Wyczyść pola
+  nazwaEl.value = '';
+  dlEl.value    = '';
+  dlEl.classList.remove('error');
+  errEl.style.display = 'none';
+  errEl.textContent   = '';
+
+  zapiszDane();
+  renderZestawy();
+  aktualizujSume();
+  toast(`✅ Dodano: ${nazwa}`);
+}
+
+function usunZestaw(id) {
+  stan.zestawy = stan.zestawy.filter(z => z.id !== id);
+  zapiszDane();
+  renderZestawy();
+  aktualizujSume();
+  toast('🗑️ Zestaw usunięty');
+}
+
+function edytujDlugosc(id) {
+  const z = stan.zestawy.find(z => z.id === id);
+  if (!z) return;
+
+  const aktualna = stan.ustawienia.jednostka === 'm'
+    ? z.dlugoscM
+    : z.dlugoscM * 1000;
+
+  const nowaStr = prompt(
+    `Edytuj długość zestawu "${z.nazwa}"\nObecna wartość: ${aktualna} ${stan.ustawienia.jednostka}\n\nWpisz nową długość:`,
+    aktualna
+  );
+  if (nowaStr === null) return; // anulowano
+
+  let nowa = parseFloat(nowaStr.replace(',', '.'));
+  if (isNaN(nowa) || nowa <= 0) {
+    toast('❌ Nieprawidłowa wartość', true);
+    return;
+  }
+
+  if (stan.ustawienia.jednostka === 'mm') nowa = nowa / 1000;
+
+  z.dlugoscM = nowa;
+  zapiszDane();
+  renderZestawy();
+  aktualizujSume();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   RENDEROWANIE CENNIKA
+   ────────────────────────────────────────────────────────────── */
+function renderCennik() {
+  const tbody = document.getElementById('cennik-tbody');
+  tbody.innerHTML = Object.entries(stan.cennik).map(([klucz, poz]) => `
+    <tr>
+      <td class="cennik-name">${escHtml(poz.nazwa)}</td>
+      <td>
+        <input type="number"
+               value="${poz.wartosc}"
+               min="0" step="0.01"
+               data-klucz="${klucz}"
+               onchange="zapiszCennik(this)"
+               oninput="walidujCennikInput(this)">
+      </td>
+      <td class="cennik-unit">${escHtml(poz.jednostka)}</td>
+    </tr>
+  `).join('');
+}
+
+function walidujCennikInput(el) {
+  const v = parseFloat(el.value);
+  el.style.borderColor = isNaN(v) || v < 0 ? 'var(--red)' : '';
+}
+
+function zapiszCennik(el) {
+  const klucz = el.dataset.klucz;
+  const v = parseFloat(el.value);
+  if (isNaN(v) || v < 0) {
+    toast('❌ Nieprawidłowa cena – wpisz liczbę ≥ 0', true);
+    el.value = stan.cennik[klucz].wartosc; // przywróć poprzednią
+    return;
+  }
+  stan.cennik[klucz].wartosc = v;
+  zapiszDane();
+  aktualizujSume();
+  renderZestawy(); // przelicz zestawy po zmianie ceny
+  toast('💾 Cena zapisana');
+}
+
+function resetCennika() {
+  if (!confirm('Przywrócić domyślne ceny? Twoje zmiany zostaną utracone.')) return;
+  stan.cennik = JSON.parse(JSON.stringify(CENNIK_DOMYSLNY));
+  zapiszDane();
+  renderCennik();
+  renderZestawy();
+  aktualizujSume();
+  toast('🔄 Cennik przywrócony do domyślnych');
+}
+
+function eksportCennik() {
+  pobierzJSON(stan.cennik, 'cennik_ogr.json');
+}
+
+function importCennik(event) {
+  const plik = event.target.files[0];
+  if (!plik) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const dane = JSON.parse(e.target.result);
+      // Walidacja: sprawdź czy klucze istnieją
+      const kluczeWymagane = Object.keys(CENNIK_DOMYSLNY);
+      for (const k of kluczeWymagane) {
+        if (!(k in dane)) throw new Error(`Brak klucza: ${k}`);
+        if (typeof dane[k].wartosc !== 'number' || dane[k].wartosc < 0) throw new Error(`Nieprawidłowa wartość: ${k}`);
+      }
+      stan.cennik = dane;
+      zapiszDane();
+      renderCennik();
+      renderZestawy();
+      aktualizujSume();
+      toast('✅ Cennik wczytany z pliku');
+    } catch (err) {
+      toast('❌ Błąd importu cennika: ' + err.message, true);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(plik);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   OBLICZENIA DODATKÓW
+   ────────────────────────────────────────────────────────────── */
+function obliczDodatki() {
+  const d = stan.dodatki;
+  const c = stan.cennik;
+  let suma = 0;
+  const pozycje = [];
+
+  if (d.transport.aktywny) {
+    const kwota = (d.transport.kwota !== null && d.transport.kwota >= 0)
+      ? d.transport.kwota
+      : c.transport_zl.wartosc;
+    suma += kwota;
+    pozycje.push({ nazwa: 'Transport', kwota });
+  }
+
+  if (d.demontaz.aktywny && d.demontaz.mb > 0) {
+    const kwota = d.demontaz.mb * c.demontaz_zl_mb.wartosc;
+    suma += kwota;
+    pozycje.push({ nazwa: `Demontaż (${d.demontaz.mb} mb)`, kwota });
+  }
+
+  if (d.brama.aktywny && d.brama.ilosc > 0) {
+    const kwota = d.brama.ilosc * c.brama_zl.wartosc;
+    suma += kwota;
+    pozycje.push({ nazwa: `Brama (${d.brama.ilosc} szt)`, kwota });
+  }
+
+  if (d.furtka.aktywny && d.furtka.ilosc > 0) {
+    const kwota = d.furtka.ilosc * c.furtka_zl.wartosc;
+    suma += kwota;
+    pozycje.push({ nazwa: `Furtka (${d.furtka.ilosc} szt)`, kwota });
+  }
+
+  return { suma: zaokraglijDo2(suma), pozycje };
+}
+
+/* ──────────────────────────────────────────────────────────────
+   AKTUALIZACJA SUMY DOLNEJ I RAPORTU
+   ────────────────────────────────────────────────────────────── */
+function aktualizujSume() {
+  // Suma zestawów
+  let sumaZestawow = 0;
+  for (const z of stan.zestawy) {
+    const obl = obliczZestaw(z.dlugoscM);
+    if (!obl.blad) sumaZestawow += obl.ksztRazem;
+  }
+
+  // Suma dodatków
+  const dod = obliczDodatki();
+
+  const total = zaokraglijDo2(sumaZestawow + dod.suma);
+  document.getElementById('bottom-suma').textContent = formatujZl(total);
+
+  // Jeśli jesteśmy na zakładce raportu, odśwież
+  if (document.getElementById('tab-podsumowanie').classList.contains('active')) {
+    renderRaport();
+  }
+  // Aktualizuj info o segmencie
+  const seg = stan.ustawienia.dlugoscPanelu_mm + stan.ustawienia.szerokoscSlupka_mm;
+  document.getElementById('u-segment-info').textContent = formatujLiczbe(seg) + ' mm';
+}
+
+/* ──────────────────────────────────────────────────────────────
+   RENDEROWANIE RAPORTU
+   ────────────────────────────────────────────────────────────── */
+function renderRaport() {
+  // ── Sekcja klienta ──
+  const k = stan.klient;
+  document.getElementById('rap-klient-body').innerHTML = [
+    k.nazwa  ? `👤 <strong>${escHtml(k.nazwa)}</strong>`         : '',
+    k.adres  ? `📍 ${escHtml(k.adres)}`                         : '',
+    k.telefon? `📞 ${escHtml(k.telefon)}`                       : '',
+    k.data   ? `📅 ${escHtml(k.data)}`                          : '',
+  ].filter(Boolean).join('<br>') || '<span style="color:var(--text3)">Brak danych klienta</span>';
+
+  // ── Sekcja zestawów ──
+  let sumaZestawow = 0;
+  if (stan.zestawy.length === 0) {
+    document.getElementById('rap-zestawy').innerHTML = '<span style="color:var(--text3)">Brak zestawów.</span>';
+  } else {
+    document.getElementById('rap-zestawy').innerHTML = stan.zestawy.map((z, i) => {
+      const obl = obliczZestaw(z.dlugoscM);
+      if (obl.blad) return `<div style="color:var(--red)">Zestaw ${i+1}: ${obl.blad}</div>`;
+      sumaZestawow += obl.ksztRazem;
+      return `
+        <div class="suma-row">
+          <span class="lbl">${i+1}. ${escHtml(z.nazwa)} (${formatujLiczbe(z.dlugoscM,2)} m, ${obl.nPaneli} pan., ${obl.nSlupkow} sł.)</span>
+          <span class="val">${formatujZl(obl.ksztRazem)}</span>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Sekcja dodatków ──
+  const dod = obliczDodatki();
+  if (dod.pozycje.length === 0) {
+    document.getElementById('rap-dodatki').innerHTML = '<span style="color:var(--text3)">Brak wybranych dodatków.</span>';
+  } else {
+    document.getElementById('rap-dodatki').innerHTML = dod.pozycje.map(p => `
+      <div class="suma-row">
+        <span class="lbl">${escHtml(p.nazwa)}</span>
+        <span class="val">${formatujZl(p.kwota)}</span>
+      </div>`).join('');
+  }
+
+  // ── Sekcja sumy ──
+  const total = zaokraglijDo2(sumaZestawow + dod.suma);
+  const totalMb = stan.zestawy.reduce((s, z) => s + z.dlugoscM, 0);
+
+  document.getElementById('rap-suma').innerHTML = `
+    <div class="suma-row"><span class="lbl">Materiały + robocizna (zestawy)</span><span class="val">${formatujZl(sumaZestawow)}</span></div>
+    <div class="suma-row"><span class="lbl">Dodatki</span><span class="val">${formatujZl(dod.suma)}</span></div>
+    <div class="suma-row"><span class="lbl">Łączna długość ogrodzenia</span><span class="val">${formatujLiczbe(totalMb,2)} mb</span></div>
+    <div class="suma-total">${formatujZl(total)}<small>Łączna wycena brutto</small></div>
+  `;
+
+  // ── Uwagi ──
+  const uwagi = stan.dodatki.uwagi;
+  document.getElementById('rap-uwagi-card').style.display = uwagi ? '' : 'none';
+  document.getElementById('rap-uwagi-body').textContent = uwagi;
+
+  // Tytuł do wydruku
+  document.getElementById('print-title').style.display = '';
+}
+
+/* ──────────────────────────────────────────────────────────────
+   KOPIUJ TEKST SMS / WHATSAPP
+   ────────────────────────────────────────────────────────────── */
+function kopiujSMS() {
+  const k = stan.klient;
+  const dod = obliczDodatki();
+  let sumaZestawow = 0;
+
+  let tekst = '🏗️ WYCENA MONTAŻU OGRODZENIA\n';
+  tekst += '================================\n';
+  if (k.nazwa)  tekst += `Klient: ${k.nazwa}\n`;
+  if (k.adres)  tekst += `Adres:  ${k.adres}\n`;
+  if (k.data)   tekst += `Data:   ${k.data}\n`;
+  tekst += '\n📐 ZESTAWY:\n';
+
+  for (const [i, z] of stan.zestawy.entries()) {
+    const obl = obliczZestaw(z.dlugoscM);
+    if (!obl.blad) {
+      sumaZestawow += obl.ksztRazem;
+      tekst += `${i+1}. ${z.nazwa} (${formatujLiczbe(z.dlugoscM,2)} m)\n`;
+      tekst += `   Panele: ${obl.nPaneli} szt, Słupki: ${obl.nSlupkow} szt\n`;
+      if (obl.maRestke) tekst += `   ⚠️ Reszta: ${obl.resztaMM} mm\n`;
+      tekst += `   Kwota: ${formatujZl(obl.ksztRazem)}\n`;
+    }
+  }
+
+  if (dod.pozycje.length > 0) {
+    tekst += '\n🔧 DODATKI:\n';
+    for (const p of dod.pozycje) {
+      tekst += `• ${p.nazwa}: ${formatujZl(p.kwota)}\n`;
+    }
+  }
+
+  const total = zaokraglijDo2(sumaZestawow + dod.suma);
+  tekst += `\n💰 RAZEM: ${formatujZl(total)}\n`;
+
+  if (stan.dodatki.uwagi) {
+    tekst += `\n📝 Uwagi: ${stan.dodatki.uwagi}\n`;
+  }
+
+  tekst += '\n--- OgrodzeniePRO ---';
+
+  navigator.clipboard.writeText(tekst)
+    .then(() => toast('✅ Skopiowano do schowka'))
+    .catch(() => {
+      // Fallback dla starszych przeglądarek
+      const ta = document.createElement('textarea');
+      ta.value = tekst;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      toast('✅ Skopiowano (tryb awaryjny)');
+    });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   DRUKOWANIE / EKSPORT PDF
+   ────────────────────────────────────────────────────────────── */
+function drukuj() {
+  renderRaport(); // upewnij się że dane są aktualne
+  showTab('podsumowanie'); // przejdź na zakładkę raportu
+  setTimeout(() => window.print(), 200);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   EKSPORT I IMPORT WYCENY
+   ────────────────────────────────────────────────────────────── */
+function eksportujWycene() {
+  pobierzJSON(stan, 'wycena_ogrodzenie_' + dzisiaj().replace(/-/g,'') + '.json');
+}
+
+function importujWycene(event) {
+  const plik = event.target.files[0];
+  if (!plik) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const dane = JSON.parse(e.target.result);
+      // Podstawowa walidacja struktury
+      if (!dane.zestawy || !dane.cennik || !dane.dodatki) throw new Error('Nieprawidłowy plik wyceny.');
+      stan = dane;
+      zapiszDane();
+      wczytajUI();
+      toast('✅ Wycena wczytana z pliku');
+    } catch (err) {
+      toast('❌ Błąd importu: ' + err.message, true);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(plik);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   PRZEŁĄCZNIK ZAKŁADEK
+   ────────────────────────────────────────────────────────────── */
+function showTab(id) {
+  // Ukryj wszystkie zakładki i odznacz przyciski
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+  // Pokaż wybraną zakładkę i zaznacz jej przycisk
+  document.getElementById('tab-' + id).classList.add('active');
+  document.getElementById('tab-btn-' + id)?.classList.add('active');
+
+  // Naprawiona wersja (tab-btn ma id "tab-NAZWA")
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    if (btn.id === 'tab-' + id) btn.classList.add('active');
+  });
+
+  // Odśwież raport gdy go otwieramy
+  if (id === 'podsumowanie') renderRaport();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   RENDEROWANIE DODATKÓW
+   Pokazuje/ukrywa pola szczegółowe gdy toggle jest włączony.
+   ────────────────────────────────────────────────────────────── */
+function renderDodatki() {
+  const transport = document.getElementById('d-transport').checked;
+  const demontaz  = document.getElementById('d-demontaz').checked;
+  const brama     = document.getElementById('d-brama').checked;
+  const furtka    = document.getElementById('d-furtka').checked;
+
+  document.getElementById('d-transport-extra').style.display = transport ? 'block' : 'none';
+  document.getElementById('d-demontaz-extra').style.display  = demontaz  ? 'block' : 'none';
+  document.getElementById('d-brama-extra').style.display     = brama     ? 'block' : 'none';
+  document.getElementById('d-furtka-extra').style.display    = furtka    ? 'block' : 'none';
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ZAPIS DANYCH DO LOCALSTROAGE
+   ────────────────────────────────────────────────────────────── */
+function zapiszDane() {
+  // Synchronizuj stan z polami UI przed zapisem
+  // Klient
+  stan.klient.nazwa   = document.getElementById('k-nazwa')?.value  || '';
+  stan.klient.adres   = document.getElementById('k-adres')?.value  || '';
+  stan.klient.telefon = document.getElementById('k-tel')?.value    || '';
+  stan.klient.data    = document.getElementById('k-data')?.value   || '';
+
+  // Dodatki
+  stan.dodatki.transport.aktywny = document.getElementById('d-transport')?.checked || false;
+  stan.dodatki.transport.kwota   = parseFloatLub(document.getElementById('d-transport-kwota')?.value, null);
+  stan.dodatki.demontaz.aktywny  = document.getElementById('d-demontaz')?.checked || false;
+  stan.dodatki.demontaz.mb       = parseFloatLub(document.getElementById('d-demontaz-mb')?.value, 0);
+  stan.dodatki.brama.aktywny     = document.getElementById('d-brama')?.checked || false;
+  stan.dodatki.brama.ilosc       = parseInt(document.getElementById('d-brama-il')?.value) || 1;
+  stan.dodatki.furtka.aktywny    = document.getElementById('d-furtka')?.checked || false;
+  stan.dodatki.furtka.ilosc      = parseInt(document.getElementById('d-furtka-il')?.value) || 1;
+  stan.dodatki.uwagi             = document.getElementById('d-uwagi')?.value || '';
+
+  try {
+    localStorage.setItem('ogrPRO_stan', JSON.stringify(stan));
+  } catch(e) {
+    console.warn('localStorage pełne lub niedostępne', e);
+  }
+  aktualizujSume();
+}
+
+function zapiszKlienta() { zapiszDane(); }
+
+function zapiszUstawienia() {
+  const panelEl  = document.getElementById('u-panel');
+  const slupekEl = document.getElementById('u-slupek');
+  const panel  = parseInt(panelEl?.value);
+  const slupek = parseInt(slupekEl?.value);
+  if (!isNaN(panel)  && panel  > 0) stan.ustawienia.dlugoscPanelu_mm  = panel;
+  if (!isNaN(slupek) && slupek > 0) stan.ustawienia.szerokoscSlupka_mm = slupek;
+  zapiszDane();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   WCZYTAJ STAN DO UI
+   Po załadowaniu strony (lub imporcie) wypełnia pola formularzy.
+   ────────────────────────────────────────────────────────────── */
+function wczytajUI() {
+  const k = stan.klient;
+  const u = stan.ustawienia;
+  const d = stan.dodatki;
+
+  // Klient
+  safeSel('k-nazwa',  k.nazwa);
+  safeSel('k-adres',  k.adres);
+  safeSel('k-tel',    k.telefon);
+  safeSel('k-data',   k.data);
+
+  // Ustawienia geometryczne
+  safeSel('u-panel',  u.dlugoscPanelu_mm);
+  safeSel('u-slupek', u.szerokoscSlupka_mm);
+
+  // Jednostki
+  setJednostka(u.jednostka, false);
+
+  // Dodatki
+  safeCheck('d-transport', d.transport.aktywny);
+  safeCheck('d-demontaz',  d.demontaz.aktywny);
+  safeCheck('d-brama',     d.brama.aktywny);
+  safeCheck('d-furtka',    d.furtka.aktywny);
+
+  if (d.transport.kwota !== null) safeSel('d-transport-kwota', d.transport.kwota);
+  safeSel('d-demontaz-mb', d.demontaz.mb || '');
+  safeSel('d-brama-il',    d.brama.ilosc  || 1);
+  safeSel('d-furtka-il',   d.furtka.ilosc || 1);
+  safeSel('d-uwagi',       d.uwagi || '');
+
+  renderDodatki();
+  renderCennik();
+  renderZestawy();
+  aktualizujSume();
+}
+
+function przeliczWszystko() {
+  renderZestawy();
+  aktualizujSume();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   NOWA WYCENA – kasuje wszystko
+   ────────────────────────────────────────────────────────────── */
+function nowaWycena() {
+  if (!confirm('Rozpocząć nową wycenę? Bieżące dane zostaną usunięte.')) return;
+  stan = {
+    klient:     { nazwa:'', adres:'', telefon:'', data: dzisiaj() },
+    ustawienia: { dlugoscPanelu_mm: 2500, szerokoscSlupka_mm: 40, jednostka: 'm' },
+    zestawy:    [],
+    dodatki:    {
+      transport: { aktywny: false, kwota: null },
+      demontaz:  { aktywny: false, mb: 0 },
+      brama:     { aktywny: false, ilosc: 1 },
+      furtka:    { aktywny: false, ilosc: 1 },
+      uwagi:     '',
+    },
+    cennik: JSON.parse(JSON.stringify(CENNIK_DOMYSLNY)),
+  };
+  localStorage.removeItem('ogrPRO_stan');
+  wczytajUI();
+  toast('🆕 Nowa wycena rozpoczęta');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   PRZEŁĄCZNIK JEDNOSTEK (m / mm)
+   ────────────────────────────────────────────────────────────── */
+function setJednostka(jed, odswiezZestawy = true) {
+  stan.ustawienia.jednostka = jed;
+
+  document.getElementById('unitBtn-m').classList.toggle('active',  jed === 'm');
+  document.getElementById('unitBtn-mm').classList.toggle('active', jed === 'mm');
+
+  const placeholder = jed === 'm' ? 'np. 18.5 (w metrach)' : 'np. 18500 (w milimetrach)';
+  document.getElementById('nowy-dl').placeholder = placeholder;
+
+  if (odswiezZestawy) {
+    zapiszDane();
+    renderZestawy();
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   POMOCNICZE FUNKCJE NARZĘDZIOWE
+   ────────────────────────────────────────────────────────────── */
+
+// Zwraca dzisiejszą datę w formacie YYYY-MM-DD
+function dzisiaj() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Zaokrąglij do 2 miejsc po przecinku
+function zaokraglijDo2(n) {
+  return Math.round(n * 100) / 100;
+}
+
+// Formatuj kwotę w PLN (polskie znaki dziesiętne)
+function formatujZl(n) {
+  return n.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
+}
+
+// Formatuj liczbę do n miejsc po przecinku
+function formatujLiczbe(n, miejsca = 0) {
+  return n.toLocaleString('pl-PL', { minimumFractionDigits: miejsca, maximumFractionDigits: miejsca });
+}
+
+// Zabezpieczenie przed XSS – zamień znaki HTML na encje
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// Pobierz plik JSON przez link
+function pobierzJSON(dane, nazwa) {
+  const blob = new Blob([JSON.stringify(dane, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = nazwa;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Pokaż komunikat błędu w polu
+function pokazBlad(el, tekst) {
+  el.textContent = tekst;
+  el.classList.add('show');
+  el.style.display = 'block';
+}
+
+// Bezpieczny parseFloat z wartością domyślną
+function parseFloatLub(str, domyslna) {
+  const v = parseFloat(str);
+  return isNaN(v) ? domyslna : v;
+}
+
+// Ustaw wartość pola formularza bezpiecznie
+function safeSel(id, val) {
+  const el = document.getElementById(id);
+  if (el && val !== undefined && val !== null) el.value = val;
+}
+
+// Ustaw stan checkboxa bezpiecznie
+function safeCheck(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.checked = !!val;
+}
+
+// Pokaż toast (powiadomienie)
+function toast(msg, isError = false) {
+  const cont = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast' + (isError ? ' error' : '');
+  el.textContent = msg;
+  cont.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   INICJALIZACJA PRZY STARCIE STRONY
+   ────────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  // Wczytaj zapisany stan z localStorage (jeśli istnieje)
+  try {
+    const zapisany = localStorage.getItem('ogrPRO_stan');
+    if (zapisany) {
+      const dane = JSON.parse(zapisany);
+      // Scalanie z domyślnym stanem (na wypadek brakujących kluczy po aktualizacji)
+      stan = Object.assign(stan, dane);
+      // Scalaj cennik osobno
+      stan.cennik = Object.assign(JSON.parse(JSON.stringify(CENNIK_DOMYSLNY)), dane.cennik || {});
+    }
+  } catch(e) {
+    console.warn('Błąd wczytywania z localStorage', e);
+  }
+
+  // Ustaw datę jeśli pusta
+  if (!stan.klient.data) stan.klient.data = dzisiaj();
+
+  // Inicjalizuj interfejs
+  wczytajUI();
+
+  // Inicjalizuj PWA (manifest + service worker)
+  inicjalizujPWA();
+
+  console.log('✅ OgrodzeniePRO – aplikacja gotowa');
+});
+</script>
+</body>
+</html>
